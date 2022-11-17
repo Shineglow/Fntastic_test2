@@ -17,15 +17,21 @@ public:
 	// Sets default values for this actor's properties
 	ATurtleBase();
 
+	UFUNCTION(BlueprintCallable)
+	void StartAnimation();
+
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Class")
 	virtual void ConfigureTimeline();
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	void MoveTurtle();
+	UFUNCTION(BlueprintCallable)
+	void InitTurtle(FVector endPoint, float speed, UCurveFloat* moveScale);
 
-	void TurtleRichFinish();
+	void MoveTurtle(float value);
+
+	void AddTurtleOffset();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTimelineComponent* tlComponent;
@@ -36,16 +42,17 @@ public:
 	UPROPERTY(EditAnywhere)
 	UCurveFloat* turtleCurve;
 
-	UFUNCTION()
-	void StartMove();
-
-	UFUNCTION()
-	void StopMove();
+	UPROPERTY()
+	class UStaticMeshComponent* turtleMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector EndPoint;
 
-	bool isOnFinish;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float turtleSpeed;
-	UTimelineComponent* MyTimeline;
+
+private:
+	bool isAnimationStart = false;
+
+	float timelineLenghtOrTime = 1.5f;
 };

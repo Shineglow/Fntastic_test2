@@ -4,60 +4,71 @@
 #include "TurtleBase.h"
 #include "Kismet/KismetMathLibrary.h"
 
-// Sets default values
 ATurtleBase::ATurtleBase()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	tlComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("TimelineComponent"));
-	ConfigureTimeline();
+    tlComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("TimelineComponent"));
+	//tlComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("TimelineComponent"));
+    turtleMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TurtleMesh"));
 }
 
+void ATurtleBase::InitTurtle(FVector endPoint, float speed, UCurveFloat* moveScale)
+{
+    turtleSpeed = speed;
+    turtleCurve = moveScale;
+
+    ConfigureTimeline();
+
+    if (EndPoint.Equals(FVector().ZeroVector))
+        EndPoint = GetTransform().GetLocation() + FVector(0, 100, 0);
+    else
+        EndPoint = endPoint;
+}
+
+void ATurtleBase::StartAnimation()
+{
+    if (isAnimationStart)
+        return;
+    tlComponent->PlayFromStart();
+    isAnimationStart = true;
+}
 
 void ATurtleBase::ConfigureTimeline() {
     if (turtleCurve)
     {
-        FOnTimelineFloat TimelineCallback;
-        FOnTimelineEventStatic TimelineFinishedCallback;
-
+        FOnTimelineFloat TimelineCallback{};
         TimelineCallback.BindUFunction(this, FName("MoveTurtle"));
-        TimelineFinishedCallback.BindUFunction(this, FName("TurtleRichFinish"));
 
-        tlComponent = NewObject<UTimelineComponent>(this, FName("DoorAnimation"));
         tlComponent->SetLooping(true);
         tlComponent->AddInterpFloat(turtleCurve, TimelineCallback);
-        tlComponent->SetTimelineFinishedFunc(TimelineFinishedCallback);
+        tlComponent->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
+        tlComponent->SetTimelineLength(timelineLenghtOrTime);
         tlComponent->RegisterComponent();
     }
 }
 
-// Called when the game starts or when spawned
-void ATurtleBase::BeginPlay()
-{
-	Super::BeginPlay();
+void ATurtleBase::MoveTurtle(float value) {
+    AddTurtleOffset();
 
-    ConfigureTimeline();
+    if (GetTransform().GetLocation().Equals(EndPoint))
+        tlComponent->Stop();
 }
 
-void ATurtleBase::MoveTurtle() {
-    if (isOnFinish)
-    {
-        tlComponent->Stop();
-        return;
-    }
-    float currentAnimationTime = MyTimeline->GetPlaybackPosition();
+void ATurtleBase::AddTurtleOffset()
+{
+    float currentAnimationTime = tlComponent->GetPlaybackPosition();
     float directionMultiplyer = turtleCurve->GetFloatValue(currentAnimationTime);
     AddActorWorldOffset(EndPoint * FApp::GetDeltaTime() * directionMultiplyer * turtleSpeed);
 }
 
-void ATurtleBase::TurtleRichFinish() {
-
+void ATurtleBase::BeginPlay()
+{
+	Super::BeginPlay();
 }
 
-// Called every frame
 void ATurtleBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+    GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Red, FString::SanitizeFloat(tlComponent->GetTimelineLength(), 3));
+    //GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Red, FString::SanitizeFloat(tlComponent->GetTimeline, 3));
 }
-
