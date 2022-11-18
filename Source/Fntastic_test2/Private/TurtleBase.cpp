@@ -18,15 +18,15 @@ ATurtleBase::ATurtleBase()
 	TimelineCallback.BindUFunction(this, FName("MoveTurtle"));
 }
 
-void ATurtleBase::InitTurtle(FVector endPoint, float speed, UCurveFloat* moveScale)
+void ATurtleBase::InitTurtle(FVector newEndPoint, float speed, UCurveFloat* moveScale)
 {
 	turtleCurve = moveScale;
 	turtleSpeed = speed;
 	
-	EndPoint = endPoint;
-	StartPoint = GetTransform().GetLocation();
+	endPoint = newEndPoint;
+	startPoint = GetTransform().GetLocation();
 	
-	direction = (EndPoint - StartPoint).GetSafeNormal();
+	direction = (endPoint - startPoint).GetSafeNormal();
 
 	ConfigureTimeline();
 	
@@ -47,7 +47,7 @@ void ATurtleBase::ConfigureTimeline() {
 void ATurtleBase::MoveTurtle(float value) {
 	float c = turtleCurve->GetFloatValue(turtleTimeline->GetPlaybackPosition());
 	FVector a = direction * turtleSpeed * FApp::GetDeltaTime() * (value);
-	FVector b = (EndPoint - GetTransform().GetLocation());
+	FVector b = (endPoint - GetTransform().GetLocation());
 
 	if (a.SizeSquared() > b.SizeSquared())
 	{

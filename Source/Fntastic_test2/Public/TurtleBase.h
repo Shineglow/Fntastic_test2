@@ -42,13 +42,13 @@ protected:
 	FVector direction;
 
 	UPROPERTY()
-	FVector StartPoint;
+	FVector startPoint;
 
 	UPROPERTY()
-	FVector DeltaDistance;
+	FVector deltaDistance;
 
 	UPROPERTY()
-	FVector EndPoint;
+	FVector endPoint;
 
 	UPROPERTY()
 	float turtleSpeed;
