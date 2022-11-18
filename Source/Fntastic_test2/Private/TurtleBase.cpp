@@ -2,73 +2,65 @@
 
 
 #include "TurtleBase.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Components/TimelineComponent.h"
+#include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 ATurtleBase::ATurtleBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
-    tlComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("TimelineComponent"));
-	//tlComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("TimelineComponent"));
-    turtleMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TurtleMesh"));
+
+	sceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("ScenComponent"));
+	SetRootComponent(sceneRoot);
+	turtleSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TurtleMesh"));
+	turtleSkeletalMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	
+	TimelineCallback.BindUFunction(this, FName("MoveTurtle"));
 }
 
 void ATurtleBase::InitTurtle(FVector endPoint, float speed, UCurveFloat* moveScale)
 {
-    turtleSpeed = speed;
-    turtleCurve = moveScale;
+	turtleCurve = moveScale;
+	turtleSpeed = speed;
+	
+	EndPoint = endPoint;
+	StartPoint = GetTransform().GetLocation();
+	
+	direction = (EndPoint - StartPoint).GetSafeNormal();
 
-    ConfigureTimeline();
-
-    if (EndPoint.Equals(FVector().ZeroVector))
-        EndPoint = GetTransform().GetLocation() + FVector(0, 100, 0);
-    else
-        EndPoint = endPoint;
-}
-
-void ATurtleBase::StartAnimation()
-{
-    if (isAnimationStart)
-        return;
-    tlComponent->PlayFromStart();
-    isAnimationStart = true;
+	ConfigureTimeline();
+	
 }
 
 void ATurtleBase::ConfigureTimeline() {
-    if (turtleCurve)
-    {
-        FOnTimelineFloat TimelineCallback{};
-        TimelineCallback.BindUFunction(this, FName("MoveTurtle"));
-
-        tlComponent->SetLooping(true);
-        tlComponent->AddInterpFloat(turtleCurve, TimelineCallback);
-        tlComponent->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
-        tlComponent->SetTimelineLength(timelineLenghtOrTime);
-        tlComponent->RegisterComponent();
-    }
+	if (turtleCurve)
+	{
+		turtleTimeline = new FTimeline();
+		turtleTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_TimelineLength);
+		turtleTimeline->SetTimelineLength(timelineLenghtOrTime);
+		turtleTimeline->AddInterpFloat(turtleCurve, TimelineCallback);
+		turtleTimeline->SetLooping(true);
+		turtleTimeline->Play();
+	}
 }
 
 void ATurtleBase::MoveTurtle(float value) {
-    AddTurtleOffset();
+	float c = turtleCurve->GetFloatValue(turtleTimeline->GetPlaybackPosition());
+	FVector a = direction * turtleSpeed * FApp::GetDeltaTime() * (value);
+	FVector b = (EndPoint - GetTransform().GetLocation());
 
-    if (GetTransform().GetLocation().Equals(EndPoint))
-        tlComponent->Stop();
-}
-
-void ATurtleBase::AddTurtleOffset()
-{
-    float currentAnimationTime = tlComponent->GetPlaybackPosition();
-    float directionMultiplyer = turtleCurve->GetFloatValue(currentAnimationTime);
-    AddActorWorldOffset(EndPoint * FApp::GetDeltaTime() * directionMultiplyer * turtleSpeed);
-}
-
-void ATurtleBase::BeginPlay()
-{
-	Super::BeginPlay();
+	if (a.SizeSquared() > b.SizeSquared())
+	{
+		AddActorWorldOffset(b);
+		turtleTimeline->SetLooping(false);
+		turtleTimeline->Stop();
+		return;
+	}
+	AddActorWorldOffset(a);
 }
 
 void ATurtleBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-    GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Red, FString::SanitizeFloat(tlComponent->GetTimelineLength(), 3));
-    //GEngine->AddOnScreenDebugMessage(-1, 0, FColor::Red, FString::SanitizeFloat(tlComponent->GetTimeline, 3));
+	turtleTimeline->TickTimeline(DeltaTime);
 }

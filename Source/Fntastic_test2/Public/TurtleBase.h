@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/TimelineComponent.h"
+#include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "TurtleBase.generated.h"
 
 
@@ -13,46 +15,52 @@ class FNTASTIC_TEST2_API ATurtleBase : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
-	// Sets default values for this actor's properties
+public:
 	ATurtleBase();
-
-	UFUNCTION(BlueprintCallable)
-	void StartAnimation();
-
-protected:
-	UFUNCTION(BlueprintCallable, Category = "Class")
-	virtual void ConfigureTimeline();
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable)
 	void InitTurtle(FVector endPoint, float speed, UCurveFloat* moveScale);
 
-	void MoveTurtle(float value);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USkeletalMeshComponent* turtleSkeletalMesh;
+	
+protected:
 
-	void AddTurtleOffset();
+	UFUNCTION(BlueprintCallable)
+	virtual void ConfigureTimeline();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UTimelineComponent* tlComponent;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	UPROPERTY(EditAnywhere)
 	UCurveFloat* turtleCurve;
 
-	UPROPERTY()
-	class UStaticMeshComponent* turtleMesh;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USceneComponent* sceneRoot;
+	
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FTimeline* turtleTimeline;
+	
+	UPROPERTY()
+	FVector direction;
+
+	UPROPERTY()
+	FVector StartPoint;
+
+	UPROPERTY()
+	FVector DeltaDistance;
+
+	UPROPERTY()
 	FVector EndPoint;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY()
 	float turtleSpeed;
+	
+public:
+	virtual void Tick(float DeltaTime) override;
 
 private:
-	bool isAnimationStart = false;
+	UFUNCTION()
+	void MoveTurtle(float value);
 
+	FOnTimelineFloat TimelineCallback{};
+	
 	float timelineLenghtOrTime = 1.5f;
 };
